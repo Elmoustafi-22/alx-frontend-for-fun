@@ -62,4 +62,3 @@ with open(output_file, 'w') as html_file:
     html_file.write("\n".join(html_lines))
 
 sys.exit(0)
-
