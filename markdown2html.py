@@ -1,18 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
+"""
+markdown2html.py: Convert a Markdown file to HTML.
+"""
 
 import sys
 import os
-
-if len(sys.argv) != 3:
-    print("Usage: ./markdown2html.py <input_file> <output_file>", file=sys.stderr)
-    sys.exit(1)
-
-input_file = sys.argv[1]
-output_file = sys.argv[2]
-
-if not os.path.exists(input_file):
-    print(f"Missing {input_file}", file=sys.stderr)
-    sys.exit(1)
 
 def parse_line(line):
     """
@@ -36,29 +28,45 @@ def parse_line(line):
 
     return line
 
-html_lines = []
-with open(input_file, 'r') as md_file:
-    inside_list = False
-    for line in md_file:
-        parsed_line = parse_line(line)
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: ./markdown2html.py <input_file> <output_file>", file=sys.stderr)
+        sys.exit(1)
 
-        # Detect if we are entering a list
-        if parsed_line.startswith("<li>") and not inside_list:
-            html_lines.append("<ul>")
-            inside_list = True
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
 
-        # Detect if we are exiting a list
-        if not parsed_line.startswith("<li>") and inside_list:
+    if not os.path.exists(input_file):
+        print(f"Missing {input_file}", file=sys.stderr)
+        sys.exit(1)
+
+    html_lines = []
+    with open(input_file, 'r') as md_file:
+        inside_list = False
+        for line in md_file:
+            parsed_line = parse_line(line)
+
+            # Detect if we are entering a list
+            if parsed_line.startswith("<li>") and not inside_list:
+                html_lines.append("<ul>")
+                inside_list = True
+
+            # Detect if we are exiting a list
+            if not parsed_line.startswith("<li>") and inside_list:
+                html_lines.append("</ul>")
+                inside_list = False
+
+            html_lines.append(parsed_line)
+
+        # Close the list if the file ends with list items
+        if inside_list:
             html_lines.append("</ul>")
-            inside_list = False
 
-        html_lines.append(parsed_line)
+    with open(output_file, 'w') as html_file:
+        html_file.write("\n".join(html_lines))
 
-    # Close the list if the file ends with list items
-    if inside_list:
-        html_lines.append("</ul>")
+    sys.exit(0)
 
-with open(output_file, 'w') as html_file:
-    html_file.write("\n".join(html_lines))
+if __name__ == "__main__":
+    main()
 
-sys.exit(0)
