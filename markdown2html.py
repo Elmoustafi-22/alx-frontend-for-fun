@@ -1,43 +1,65 @@
-#!/usr/bin/python3
-'''
-A script that codes markdown to HTML
-'''
+#!/usr/bin/env python3
+
 import sys
 import os
-import re
 
-if __name__ == '__main__':
+if len(sys.argv) != 3:
+    print("Usage: ./markdown2html.py <input_file> <output_file>", file=sys.stderr)
+    sys.exit(1)
 
-    # Test that the number of arguments passed is 2
-    if len(sys.argv[1:]) != 2:
-        print('Usage: ./markdown2html.py README.md README.html',
-              file=sys.stderr)
-        sys.exit(1)
+input_file = sys.argv[1]
+output_file = sys.argv[2]
 
-    # Store the arguments into variables
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
+if not os.path.exists(input_file):
+    print(f"Missing {input_file}", file=sys.stderr)
+    sys.exit(1)
 
-    # Checks that the markdown file exists and is a file
-    if not (os.path.exists(input_file) and os.path.isfile(input_file)):
-        print(f'Missing {input_file}', file=sys.stderr)
-        sys.exit(1)
+def parse_line(line):
+    """
+    Parse a single line of Markdown and convert to HTML.
+    Handles headings and list items.
+    """
+    stripped = line.lstrip()
 
-    with open(input_file, encoding='utf-8') as file_1:
-        html_content = []
-        md_content = [line[:-1] for line in file_1.readlines()]
-        for line in md_content:
-            heading = re.split(r'#{1,6} ', line)
-            if len(heading) > 1:
-                # Compute the number of the # present to
-                # determine heading level
-                h_level = len(line[:line.find(heading[1])-1])
-                # Append the html equivalent of the heading
-                html_content.append(
-                    f'<h{h_level}>{heading[1]}</h{h_level}>\n'
-                )
-            else:
-                html_content.append(line)
+    # Check for headings
+    if stripped.startswith('#'):
+        heading_level = len(stripped.split()[0])
+        if heading_level > 6:
+            heading_level = 6
+        content = stripped[heading_level:].strip()
+        return f"<h{heading_level}>{content}</h{heading_level}>"
 
-    with open(output_file, 'w', encoding='utf-8') as file_2:
-        file_2.writelines(html_content)
+    # Check for list items
+    elif stripped.startswith('-'):
+        content = stripped[1:].strip()
+        return f"<li>{content}</li>"
+
+    return line
+
+html_lines = []
+with open(input_file, 'r') as md_file:
+    inside_list = False
+    for line in md_file:
+        parsed_line = parse_line(line)
+
+        # Detect if we are entering a list
+        if parsed_line.startswith("<li>") and not inside_list:
+            html_lines.append("<ul>")
+            inside_list = True
+
+        # Detect if we are exiting a list
+        if not parsed_line.startswith("<li>") and inside_list:
+            html_lines.append("</ul>")
+            inside_list = False
+
+        html_lines.append(parsed_line)
+
+    # Close the list if the file ends with list items
+    if inside_list:
+        html_lines.append("</ul>")
+
+with open(output_file, 'w') as html_file:
+    html_file.write("\n".join(html_lines))
+
+sys.exit(0)
+
