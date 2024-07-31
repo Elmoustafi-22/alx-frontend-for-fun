@@ -6,11 +6,12 @@ markdown2html.py: Convert a Markdown file to HTML.
 import sys
 import os
 import re
+import hashlib
 
 def parse_line(line):
     """
     Parse a single line of Markdown and convert it to HTML.
-    Handles headings, unordered lists, ordered lists, bold, italics, and paragraphs.
+    Handles headings, unordered lists, ordered lists, bold, italics, and custom syntax.
     """
     stripped = line.strip()
 
@@ -25,26 +26,28 @@ def parse_line(line):
     # Check for unordered list items
     elif stripped.startswith('- '):
         content = stripped[2:].strip()
-        # Convert bold and italics within list items
         content = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', content)
         content = re.sub(r'__(.*?)__', r'<em>\1</em>', content)
+        content = re.sub(r'\[\[(.*?)\]\]', lambda x: hashlib.md5(x.group(1).encode()).hexdigest(), content)
+        content = re.sub(r'\(\((.*?)\)\)', lambda x: x.group(1).replace('c', '').replace('C', ''), content)
         return f"<li>{content}</li>"
 
     # Check for ordered list items
     elif stripped.startswith('* '):
         content = stripped[2:].strip()
-        # Convert bold and italics within list items
         content = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', content)
         content = re.sub(r'__(.*?)__', r'<em>\1</em>', content)
+        content = re.sub(r'\[\[(.*?)\]\]', lambda x: hashlib.md5(x.group(1).encode()).hexdigest(), content)
+        content = re.sub(r'\(\((.*?)\)\)', lambda x: x.group(1).replace('c', '').replace('C', ''), content)
         return f"<li>{content}</li>"
 
-    # Handle bold (**text**) and italics (__text__) within the line
+    # Handle bold, italics, MD5, and custom removal
     elif stripped:
-        # Convert bold syntax to HTML
         bold_converted = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', stripped)
-        # Convert italic syntax to HTML
         italic_converted = re.sub(r'__(.*?)__', r'<em>\1</em>', bold_converted)
-        return italic_converted
+        md5_converted = re.sub(r'\[\[(.*?)\]\]', lambda x: hashlib.md5(x.group(1).encode()).hexdigest(), italic_converted)
+        custom_converted = re.sub(r'\(\((.*?)\)\)', lambda x: x.group(1).replace('c', '').replace('C', ''), md5_converted)
+        return custom_converted
 
     return None
 
